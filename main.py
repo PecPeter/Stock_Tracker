@@ -1,22 +1,37 @@
-import requests
-from bs4 import BeautifulSoup
+import os
+import sys
+import sqlite3
+
+import database
+import menuCommands
 
 # Main program code
 
-# TODO: change the options to work like terminal commands
-introString = """
-Stock Ticker Tracker (v0.1)
-Current Actions:
-    (1) Add new tracked ticker
-    (2) Remove tracked ticker
-    (3) List tracked tickers
-    (4) List all tickers
-    (5) Update all tracked tickers
-    (6) Update single tracked ticker
-    (7) Exit"""
+# TODO: change the options to work like terminal commands,
+#       make it so that you can choose which database to use, and pass the
+#       cursor for that database to the different functions. add functions to
+#       init a new database...
 exitProgram = False
+if len(sys.argv) != 2 :
+    print("Please enter database that you would like to open as a" \
+          "console argument")
+    exitProgram = True
+else :
+    tmpStr = sys.argv[1].split("/")
+    dirStr = ""
+    for index in range(0,len(tmpStr)-1) :
+        dirStr += tmpStr[index] + "/"
+    if os.path.isdir(dirStr) == False :
+        print("Path to database doesn't exist")
+        exitProgram = True
+    else :
+        if os.path.isfile(sys.argv[1]) == False :
+            database.create_database(sys.argv[1])
+        conn = sqlite3.connect(sys.argv[1])
+        cur = conn.cursor()
+
 while exitProgram == False :
-    print(introString)
+    print(menuCommands.introString)
     userInput = input("Selection: ")
     if userInput == "1" :
         # Execute code for adding a new ticker
@@ -43,19 +58,8 @@ while exitProgram == False :
         print("5")
 
     elif userInput == "6" :
-        # Execute code for updating information for a single tracked ticker
-        print("6")
-
-    elif userInput == "7" :
         # Exit
         exitProgram = True
     else :
         print("Incorrect selection. Please try again.")
 print("Quiting Stock Ticker Tracker")
-
-def add_new_ticker (*args) :
-    print("\nAdding a new ticker for tracking")
-    userInput = input("Stock Ticker or Name: ")
-
-    # Check whether the input ticker/name is contained in the current database
-
