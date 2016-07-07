@@ -13,7 +13,7 @@ import menuCommands
 #       init a new database...
 exitProgram = False
 if len(sys.argv) != 2 :
-    print("Please enter database that you would like to open as a" \
+    print("Please enter database that you would like to open as a " \
           "console argument")
     exitProgram = True
 else :
@@ -36,14 +36,29 @@ while exitProgram == False :
     if userInput == "1" :
         # Execute code for adding a new ticker
         print("\n")
-        print("Adding new ticker for tracking")
-        userInput = input("New ticker: ")
-        # Check whether the ticker exists, and if it's already tracked
+        print("Adding new stock for tracking")
+        foundStock = False
+        while foundStock == False :
+            print("Enter 'quit' to exit to main menu")
+            userInput = input("New stock: ")
+            if userInput == "quit" :
+                break
+            else :
+                foundStock = database.track_stock(userInput,conn)
 
 
     elif userInput == "2" :
         # Execute code for removing a tracked ticker
-        print("2")
+        print("\n")
+        print("Removing stock from tracking")
+        foundStock = False
+        while foundStock == False :
+            print("Enter 'quit' to exit to main menu")
+            userInput = input("Remove stock: ")
+            if userInput == "quit" :
+                break
+            else :
+                foundStock = database.untrack_stock(userInput,conn)
 
     elif userInput == "3" :
         # Execute code for listing all currently tracked tickers

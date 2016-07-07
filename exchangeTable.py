@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 
-from sqlCommand import exchangeEntry
+import sqlCommand
 
 def populate_TSX (connection) :
     # This updates the TSX tickers
@@ -12,7 +12,7 @@ def populate_TSX (connection) :
     cur = connection
 
     for alphaItr in string.ascii_uppercase :
-        print("Searching TSX for letter: " + alphaItr)
+#        print("Searching TSX for letter: " + alphaItr)
         alphaString = "&SearchKeyword=" + alphaItr
         urlTSX = "http://www.tmxmoney.com/TMX/HttpController?" \
                  "GetPage=ListedCompanyDirectory" \
@@ -29,7 +29,7 @@ def populate_TSX (connection) :
 
         # Iterate through all the pages for the letter
         for pageItr in range(1, maxPageCount + 1) :
-            print("    Page: " + str(pageItr) + " of " + str(maxPageCount))
+#            print("    Page: " + str(pageItr) + " of " + str(maxPageCount))
             pageString = "&Page=" + str(pageItr)
             req = requests.get(urlTSX + alphaString + pageString)
             tree = BeautifulSoup(req.content, "lxml")
@@ -38,9 +38,9 @@ def populate_TSX (connection) :
             for index in range(0, int(len(infoTable)/2)-1) :
                 tickerName = infoTable[index*2].text
                 ticker = infoTable[index*2+1].text
-                tickerTuple = (tickerName, ticker, "TSX")
+                tickerTuple = (ticker, tickerName, "TSX")
                 tickerList.append(tickerTuple)
-            cur.executemany(exchangeEntry.format("exchangeTable_TSX"), tickerList)
+            cur.executemany(sqlCommand.exchangeEntry.format("exchangeTable_TSX"), tickerList)
     connection.commit()
 
 def populate_NASDAQ (connection) :
@@ -56,16 +56,39 @@ def populate_amer_exchange (connection, exchange) :
     cur = connection.cursor()
     csvURL = "http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&render=download&exchange="
     s = requests.Session()
-    print("Searching " + exchange + " exchange for tickers.")
+#    print("Searching " + exchange + " exchange for tickers.")
     download = requests.Session().get(csvURL + exchange)
     decoded_content = download.content.decode("utf-8")
     cr = csv.reader(decoded_content.splitlines(), delimiter=",")
     my_list = list(cr)
     tickerList = []
+    firstRow = True
     for row in my_list :
-        tickerName = row[1]
-        ticker = row[0]
-        tickerTuple = (tickerName, ticker, exchange)
-        tickerList.append(tickerTuple)
-    cur.executemany(exchangeEntry.format("exchangeTable_"+exchange), tickerList)
+        if firstRow == True :
+            firstRow = False
+        else :
+            ticker = row[0]
+            tickerName = row[1]
+            tickerTuple = (ticker, tickerName, exchange)
+            tickerList.append(tickerTuple)
+    cur.executemany(sqlCommand.exchangeEntry.format("exchangeTable_"+exchange), tickerList)
     connection.commit()
+
+def find_exchange_stock (stockId, cursor) :
+    # The stockid can be the symbol or the name of the stock
+    matchedStockList = []
+    cursor.execute("SELECT TABLE_NAME FROM exchangeInfoTable;")
+    exchangeList = cursor.fetchall()
+    for exchangeItr in exchangeList :
+        cursor.execute(sqlCommand.searchExchangeName.format(exchangeItr[0]),
+                       (stockId,))
+        tmpMatchedStockList = cursor.fetchall()
+        for listItr in tmpMatchedStockList :
+            matchedStockList.append(listItr)
+        cursor.execute(sqlCommand.searchExchangeSym.format(exchangeItr[0]),
+                       (stockId,))
+        tmpMatchedStockList = cursor.fetchall()
+        for listItr in tmpMatchedStockList :
+            matchedStockList.append(listItr)
+
+    return matchedStockList
