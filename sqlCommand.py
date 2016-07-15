@@ -21,7 +21,8 @@ deleteStockTableName = "DELETE FROM {} WHERE NAME=?;"
 # Every tracked stock will have the following tables:
 # SQL command string to create a stocks' historical price table
 createHPTable = "CREATE TABLE {} (DATE INT PRIMARY KEY," \
-                "OPEN INT, HIGH INT, LOW INT, CLOSE INT, VOLUME INT);"
+                "OPEN REAL, HIGH REAL, LOW REAL, CLOSE REAL, VOLUME INT);"
+hpTableEntry = "INSERT INTO {} VALUES (?,?,?,?,?,?);"
 # SQL command string to create a stocks' financial data table
 createFnclTable = "CREATE TABLE {} (DATE INT PRIMARY KEY);"
 
@@ -42,3 +43,6 @@ searchExchangeSym = "SELECT * FROM {} WHERE SYMBOL=?;"
 #------------------------------------------------------------------------------
 
 dropTable = "DROP TABLE IF EXISTS {};"
+searchTable = "SELECT * FROM {} WHERE :col=:value;"
+searchStockByName = "SELECT * FROM {} WHERE NAME=?;"
+searchStockBySym = "SELECT * FROM {} WHERE SYMBOL=?;"

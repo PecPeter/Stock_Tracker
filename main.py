@@ -62,7 +62,7 @@ while exitProgram == False :
 
     elif userInput == "3" :
         # Execute code for listing all currently tracked tickers
-        print("3")
+        database.list_stock(conn)
 
     elif userInput == "4" :
         # Execute code for listing all the tickers that can be tracked

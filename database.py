@@ -1,5 +1,6 @@
 import datetime
 import sqlite3
+import prettytable
 
 import sqlCommand
 import stockTable
@@ -49,16 +50,19 @@ def create_database (databasePath) :
 def track_stock (stockId, connection) :
     # Check if the stockId matches a name or symbol
     cursor = connection.cursor()
+    exchangeTableList = []
+    cursor.execute("SELECT TABLE_NAME FROM exchangeInfoTable;")
+    exchangeTableList = cursor.fetchall()
     matchedStockList = exchangeTable.find_exchange_stock(stockId, cursor)
     if len(matchedStockList) == 0 :
         print("Did not find a stock with a name/symbol of: " + stockId)
         return False
     elif len(matchedStockList) > 1 :
         print("Found " + str(len(matchedStockList)) + " matching stocks:")
-        for listItr in matchedStockList :
-            print("    Stock Name: " + listItr[0])
-            print("    Stock Sym:  " + listItr[1])
-            print("    Exchange:   " + listItr[2] + "\n")
+        table = prettytable.PrettyTable(["Stock Name","Stock Sym","Exchange"])
+        for name, sym, exchange in matchedStockList :
+            table.add_row([name,sym,exchange])
+        print(table.get_string())
         return False
 
     # Found single stock
@@ -85,8 +89,6 @@ def track_stock (stockId, connection) :
 
     # Stock is not being tracked already, generate the stock specific
     # entries/tables
-    connection.execute(sqlCommand.trackedStockTableEntry.format("trackedStockTable"),
-                       (stockSym,stockName,exchange,updateFrom,updateTo))
     hpTableName = utilFunc.gen_hp_table_name(stockSym, exchange)
     fnclTableName = utilFunc.gen_fncl_table_name(stockSym, exchange)
     connection.execute(sqlCommand.createHPTable.format(hpTableName))
@@ -94,7 +96,19 @@ def track_stock (stockId, connection) :
     connection.commit()
 
     # Populate the tables
-    stockTable.populate_stock(stockSym,stockName,exchange,updateFrom,updateTo,connection)
+    stockTable.populate_stock(stockSym,exchange,hpTableName,fnclTableName,
+                              updateFrom,updateTo,connection)
+
+    # Update the tracking dates
+    cursor.execute("SELECT MAX(DATE) AS date FROM {};".format(hpTableName))
+    tmpDate = cursor.fetchall()
+    updateTo = tmpDate[0][0]
+    cursor.execute("SELECT MIN(DATE) AS date FROM {};".format(hpTableName))
+    tmp = cursor.fetchall()
+    updateFrom = tmp[0][0]
+
+    connection.execute(sqlCommand.trackedStockTableEntry.format("trackedStockTable"),
+                       (stockSym,stockName,exchange,updateFrom,updateTo))
     return True
 
 def untrack_stock (stockId, connection) :
@@ -106,10 +120,10 @@ def untrack_stock (stockId, connection) :
         return False
     elif len(matchedStockList) > 1 :
         print("Found " + str(len(matchedStockList)) + " matching stocks:")
+        table = prettytable.PrettyTable(["Stock Sym","Stock Name","Exchange"])
         for listItr in matchedStockList :
-            print("    Stock Name: " + listItr[0])
-            print("    Stock Sym:  " + listItr[1])
-            print("    Exchange:   " + listItr[2] + "\n")
+            table.add_row([listItr[0],listItr[1],listItr[2]])
+        print(table.get_string())
         return False
 
     # Found single stock
@@ -131,3 +145,9 @@ def untrack_stock (stockId, connection) :
     connection.execute(sqlCommand.dropTable.format(fnclTableName))
 
     return True
+
+def list_stock (connection) :
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM trackedStockTable;")
+    ptCursor = prettytable.from_db_cursor(cursor)
+    print(ptCursor)
